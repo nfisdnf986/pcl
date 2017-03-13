@@ -36,23 +36,8 @@ int main(int argc, char *argv[])
 
     dmc.loadDisparityMap ("/home/nikhil/git_repo/arpg/pcl/disp.pgm", 640, 480);
     dmc.compute(*cloud);
-    
-
-    // Loading disparity image
-    Mat disparity = imread("/home/nikhil/git_repo/arpg/pcl/disp.pgm", IMREAD_GRAYSCALE);
-    if (disparity.empty())
-    {
-      cerr << "ERROR: Could not read disp.pgm" << std::endl;
-      return 1;
-    }
     */
 
-
-    std::shared_ptr<calibu::Rig<double>> cam_xml = calibu::ReadXmlRig("/home/nikhil/git_repo/arpg/pcl/cameras.xml");
-    std::shared_ptr<calibu::Rig<double>> rig = calibu::ToCoordinateConvention(cam_xml, calibu::RdfVision);
-
-    float focal_length = (rig->cameras_[0]->GetParams()[0] + rig->cameras_[0]->GetParams()[1])/2.0;
-    float baseline = rig->cameras_[1]->Pose().matrix()(0,3);
 
     Mat img;
     img = imread("/home/nikhil/git_repo/arpg/pcl/disp.pgm");
@@ -63,9 +48,14 @@ int main(int argc, char *argv[])
       return -1;
     }
 
-    const unsigned w = img.size().width;//rig->cameras_[0]->Width();
-    const unsigned h = img.size().height;//rig->cameras_[0]->Height();
-    cout << "w " << w << " h " << h << endl;
+    std::shared_ptr<calibu::Rig<double>> cam_xml = calibu::ReadXmlRig("/home/nikhil/git_repo/arpg/pcl/cameras.xml");
+    std::shared_ptr<calibu::Rig<double>> rig = calibu::ToCoordinateConvention(cam_xml, calibu::RdfVision);
+
+    float focal_length = (rig->cameras_[0]->GetParams()[0] + rig->cameras_[0]->GetParams()[1])/2.0;
+    float baseline = rig->cameras_[1]->Pose().matrix()(0,3);
+
+    const unsigned w = img.size().width; // rig->cameras_[0]->Width();
+    const unsigned h = img.size().height; // rig->cameras_[0]->Height();
 
     //~ namedWindow( "Display window", WINDOW_AUTOSIZE );
     //~ imshow( "Display window", image );
@@ -79,8 +69,6 @@ int main(int argc, char *argv[])
     cloud.points.resize(cloud.width*(cloud.height+1));
 
     const unsigned short* d_img = (unsigned short*) img.data;
-    Eigen::Vector2d pixel;
-    Eigen::Vector3d point;
 
     float fb = focal_length * baseline;
     float u_centre = (float)rig->cameras_[0]->GetParams()[2]; // h/2.0;
@@ -88,32 +76,27 @@ int main(int argc, char *argv[])
     float doffs = (float)rig->cameras_[1]->GetParams()[2]-(float)rig->cameras_[0]->GetParams()[2];
     cout << "f " << focal_length << " | b " << baseline << " | fb " << fb << " | u,v " << u_centre << "," << v_centre << " | doffs " << doffs << endl;
 
-    int zc = 0, nzc = 0;;
     for (unsigned i=0; i<h*w; i++) {
 
-	float u = (float) (i/w);
-	float v = (float) (i%w);
+        float u = (float) (i/w);
+        float v = (float) (i%w);
 
         if (d_img[i] == 0) {
             cloud.points[i+cloud.height*h*w].x =
             cloud.points[i+cloud.height*h*w].y =
             cloud.points[i+cloud.height*h*w].z =
             std::numeric_limits<float>::quiet_NaN();
-            zc++;
-	    continue;
+            continue;
         }
 
-
-	float depth = fb/((float)img.at<Vec3b>(u,v)[0] + doffs);
-	float X = (u-u_centre) * depth / focal_length;
-	float Y = (v-v_centre) * depth / focal_length;
+        float depth = fb/((float)img.at<Vec3b>(u,v)[0] + doffs);
+        float X = (u-u_centre) * depth / focal_length;
+        float Y = (v-v_centre) * depth / focal_length;
 
         cloud.points[i].x = X;
         cloud.points[i].y = Y;
         cloud.points[i].z = depth;
-	nzc++;
     }
-    cout << "nzc " << nzc << " | zc " << zc << " | + " << nzc+zc  << " " << endl;
     pcl::io::savePCDFileBinary("pointclouds.pcd", cloud);
 
     return 0;
