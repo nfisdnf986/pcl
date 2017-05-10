@@ -17,6 +17,7 @@ find_package(PCL REQUIRED) #  COMPONENTS common io
 find_package(OpenCV REQUIRED)
 find_package(Calibu REQUIRED)
 find_package(HAL REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 # directories
 set (PCL_SRC_DIR src)
@@ -46,6 +47,7 @@ include_directories("${PCL_SRC_DIR}"
   ${OpenCV_INCLUDE_DIRS}
   ${Calibu_INCLUDE_DIRS}
   ${HAL_INCLUDE_DIRS}
+  ${EIGEN_INCLUDE_DIRS}
 )
 
 #~ link_directories(${PCL_LIBRARY_DIRS}
@@ -58,4 +60,5 @@ target_link_libraries( ${PROJECT_NAME}
   ${OpenCV_LIBS}
   ${Calibu_LIBRARIES}
   ${HAL_LIBRARIES}
+  ${EIGEN_LIBRARIES}
 )
